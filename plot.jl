@@ -41,9 +41,9 @@ legend_fontsize = 11
 figure_title_fontsize = 17
 
 single_title_fontsize = 10
-single_axis_guide_fontsize = 9
-single_axis_tick_fontsize = 8
-single_legend_fontsize = 8
+single_axis_guide_fontsize = 8
+single_axis_tick_fontsize = 7
+single_legend_fontsize = 7
 
 function plot_vals(Ns, ts, order, title, xlabel, ylabel, pname; show_legend=true, save_outputs=true,
     show_xlabel=true, show_ylabel=true)
@@ -71,37 +71,36 @@ function plot_vals(Ns, ts, order, title, xlabel, ylabel, pname; show_legend=true
     return p
 end
 
-ps_static = plot_vals(Ns, ts_static, [:FT, :DPA, :BUS, :EBUS], "Static", "sampler size",
+ps_static = plot_vals(Ns, ts_static, [:FT, :DPA, :BUS, :EBUS], "Static Sampling", "sampler size",
     "time per single draw (ns)", "static")
 
-ps_dynamic_fixed = plot_vals(Ns, ts_dynamic_fixed_dom, [:FT, :DPA, :BUS, :EBUS], "Fixed Range", "sampler size",
+ps_dynamic_fixed = plot_vals(Ns, ts_dynamic_fixed_dom, [:FT, :DPA, :BUS, :EBUS], "Fixed Range Sampling", "sampler size",
     "time per single update & draw (ns)", "dynamic_fixed")
 
-ps_dynamic_var = plot_vals(Ns, ts_dynamic_var_dom, [:DPA, :BUS, :EBUS], "Increasing Range", "starting sampler size",
+ps_dynamic_var = plot_vals(Ns, ts_dynamic_var_dom, [:DPA, :BUS, :EBUS], "Increasing Range Sampling", "starting sampler size",
     "time per single update & draw (ns)", "dynamic_variable")
 
-ps_dynamic_dec = plot_vals(Ns, ts_dynamic_dec_dom, [:FT, :DPA, :BUS, :EBUS], "Decreasing Range", "starting sampler size",
+ps_dynamic_dec = plot_vals(Ns, ts_dynamic_dec_dom, [:FT, :DPA, :BUS, :EBUS], "Decreasing Range Sampling", "starting sampler size",
     "time per single update & draw (ns)", "dynamic_decreasing")
 
 single_plot_size = Plots.default(:size)
-ps_dynamic_fixed_sub = plot_vals(Ns, ts_dynamic_fixed_dom, [:FT, :DPA, :BUS, :EBUS], "Fixed Range", "sampler size",
+ps_dynamic_fixed_sub = plot_vals(Ns, ts_dynamic_fixed_dom, [:FT, :DPA, :BUS, :EBUS], "Fixed Range Sampling", "sampler size",
     "time (ns)", "dynamic_fixed"; show_legend=false, save_outputs=false,
     show_xlabel=false, show_ylabel=false)
-ps_dynamic_dec_sub = plot_vals(Ns, ts_dynamic_dec_dom, [:FT, :DPA, :BUS, :EBUS], "Decreasing Range", "sampler size",
+ps_dynamic_dec_sub = plot_vals(Ns, ts_dynamic_dec_dom, [:FT, :DPA, :BUS, :EBUS], "Decreasing Range Sampling", "sampler size",
     "time (ns)", "dynamic_decreasing"; show_legend=false, save_outputs=false,
     show_xlabel=true, show_ylabel=true)
-ps_dynamic_var_sub = plot_vals(Ns, ts_dynamic_var_dom, [:DPA, :BUS, :EBUS], "Increasing Range", "sampler size",
+ps_dynamic_var_sub = plot_vals(Ns, ts_dynamic_var_dom, [:DPA, :BUS, :EBUS], "Increasing Range Sampling", "sampler size",
     "time (ns)", "dynamic_variable"; show_legend=false, save_outputs=false,
     show_xlabel=true, show_ylabel=false)
 
-ps_static_sub = plot_vals(Ns, ts_static, [:FT, :DPA, :BUS, :EBUS], "Static", "sampler size",
+ps_static_sub = plot_vals(Ns, ts_static, [:FT, :DPA, :BUS, :EBUS], "Static Sampling", "sampler size",
     "time (ns)", "static"; show_legend=true, save_outputs=false,
     show_xlabel=false, show_ylabel=true)
 
 p_perf = plot(ps_static_sub, ps_dynamic_fixed_sub, ps_dynamic_dec_sub, ps_dynamic_var_sub,
     layout=(2, 2), size=(round(Int, 2.1 * single_plot_size[1]), round(Int, 2.1 * single_plot_size[2])),
     margin=4Plots.mm,
-    plot_title="Sampling Performance Benchmarks",
     plot_titlefontsize=figure_title_fontsize,
     dpi=1000)
 savefig(p_perf, "figures/performance_benchmarks.pdf")
@@ -154,17 +153,16 @@ for i in 1:100
     i <= 50 && push!(js_BUS, js_divergence(M_BUS[i, :], probs))
 end
 
-p = plot(js_FT, line = (2.5, :dot), label="FT", 
-    title="JS Divergence of Empirical vs. Theoretical Distribution",
+p = plot(js_FT, line = (1, :dot), label="FT", 
     ylabel="divergence", xlabel="decay step",
     size=(single_plot_size[1], round(Int, 0.75 * single_plot_size[2])),
     right_margin=10Plots.mm, bottom_margin=3Plots.mm, dpi=1000,
     titlefontsize=single_title_fontsize, guidefontsize=single_axis_guide_fontsize,
     tickfontsize=single_axis_tick_fontsize, legendfontsize=single_legend_fontsize,
     legend=:topleft, color = colors[:FT])
-plot!(js_DPA, line = (2.5, :dash), label="DPA*", color = colors[:DPA])
-plot!(js_BUS, line = (2.5, :dashdot), label="BUS", color = colors[:BUS])
-plot!(js_EBUS, line = (2.5, :solid), label="EBUS", color = colors[:EBUS])
+plot!(js_DPA, line = (1, :dash), label="DPA*", color = colors[:DPA])
+plot!(js_BUS, line = (1, :dashdot), label="BUS", color = colors[:BUS])
+plot!(js_EBUS, line = (1, :solid), label="EBUS", color = colors[:EBUS])
 savefig(p, "figures/numerical" * ".pdf")
 savefig(p, "figures/numerical" * ".png")
 
@@ -174,37 +172,36 @@ l = @layout [a b; d e]
 yticks = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]
 p_theory = decaying_weights_sampling_probability(100, 50)
 p2 = bar(k, p_theory, bar_width = 0.9, title = "EBUS", label = "theoretical",
-    ylabel="probability", yticks=yticks, ylims=(0, 0.06), linecolor=:red,
-    color=:red, fillalpha=0.25, alpha=0.25, legend=:topleft,
+    ylabel="probability", yticks=yticks, ylims=(0, 0.06), linecolor=2,
+    color=2, fillalpha=0.25, alpha=0.25, legend=:topleft,
     titlefontsize=subplot_title_fontsize, guidefontsize=axis_guide_fontsize,
     tickfontsize=axis_tick_fontsize, legendfontsize=legend_fontsize)
-bar!(p2, k, M_EBUS[50, :], bar_width = 0.6, label = "empirical", linecolor=1, color=1)
+bar!(p2, k, M_EBUS[50, :], fillalpha=0.25, alpha=0.25, bar_width = 0.6, label = "empirical", linecolor=1, color=1)
 
 p3 = bar(k, p_theory, bar_width = 0.9, title = "BUS", label = "theoretical",
-    yticks=yticks, ylims=(0, 0.06), linecolor=:red,
-    color=:red, fillalpha=0.25, alpha=0.25, legend = false,
+    yticks=yticks, ylims=(0, 0.06), linecolor=2,
+    color=2, fillalpha=0.25, alpha=0.25, legend = false,
     titlefontsize=subplot_title_fontsize, guidefontsize=axis_guide_fontsize,
     tickfontsize=axis_tick_fontsize, legendfontsize=legend_fontsize)
-bar!(p3, k, M_BUS[50, :], bar_width = 0.6, label = "empirical", linecolor=1, color=1)
+bar!(p3, k, M_BUS[50, :], fillalpha=0.25, alpha=0.25, bar_width = 0.6, label = "empirical", linecolor=1, color=1)
 
 p4 = bar(k, p_theory, bar_width = 0.9, title = "FT", label = "theoretical",
-    xlabel="index", ylabel="probability", yticks=yticks, ylims=(0, 0.06), linecolor=:red,
-    color=:red, fillalpha=0.25, alpha=0.25, legend = false,
+    xlabel="index", ylabel="probability", yticks=yticks, ylims=(0, 0.06), linecolor=2,
+    color=2, fillalpha=0.25, alpha=0.25, legend = false,
     titlefontsize=subplot_title_fontsize, guidefontsize=axis_guide_fontsize,
     tickfontsize=axis_tick_fontsize, legendfontsize=legend_fontsize)
-bar!(p4, k, M_FT[50, :], bar_width = 0.6, label = "empirical", linecolor=1, color=1)
+bar!(p4, k, M_FT[50, :], fillalpha=0.25, alpha=0.25, bar_width = 0.6, label = "empirical", linecolor=1, color=1)
 
 p5 = bar(k, p_theory, bar_width = 0.9, title = "DPA*", label = "theoretical",
-    xlabel="index", yticks=yticks, ylims=(0, 0.06), linecolor=:red,
-    color=:red, fillalpha=0.25, alpha=0.25, legend = false,
+    xlabel="index", yticks=yticks, ylims=(0, 0.06), linecolor=2,
+    color=2, fillalpha=0.25, alpha=0.25, legend = false,
     titlefontsize=subplot_title_fontsize, guidefontsize=axis_guide_fontsize,
     tickfontsize=axis_tick_fontsize, legendfontsize=legend_fontsize)
-bar!(p5, k, M_DPA[50, :], bar_width = 0.6, label = "empirical", linecolor=1, color=1)
+bar!(p5, k, M_DPA[50, :], fillalpha=0.25, alpha=0.25, bar_width = 0.6, label = "empirical", linecolor=1, color=1)
 
 p = plot(p2, p3, p4, p5, layout = l,
     size=(round(Int, 2.1 * single_plot_size[1]), round(Int, 2.1 * single_plot_size[2])),
     margin=4Plots.mm,
-    plot_title="Empirical vs. Theoretical Distributions at 50th Decay Step",
     plot_titlevspan=0.04, dpi=1000, plot_titlefontsize=figure_title_fontsize)
 
 savefig(p, "figures/numerical50" * ".pdf")

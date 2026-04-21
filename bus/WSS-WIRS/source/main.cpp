@@ -9,6 +9,8 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <algorithm>
+#include <numeric>
 #include "XoshiroCpp.hpp"
 #include "QuickBucket.hpp"
 
@@ -116,26 +118,42 @@ vector<int> benchmark_sample_dynamic_fixed(XoshiroCpp::Xoroshiro128Plus& rng, Bu
     return samples;
 }
 
-std::vector<int> benchmark_sample_dynamic_variable(XoshiroCpp::Xoroshiro128Plus& rng, BucketMethod& bucket, int n) {
+std::vector<int> benchmark_sample_dynamic_variable(
+    XoshiroCpp::Xoroshiro128Plus& rng,
+    BucketMethod& bucket,
+    int n,
+    const std::vector<int>& insertion_order
+) {
 
     std::vector<int> samples;
    samples.reserve(9*n);
 
-    std::normal_distribution<double> weight_dist(0.0, 1.0);    
+    std::normal_distribution<double> weight_dist(0.0, 1.0);
 
     for (size_t i = 0; i < 9*n; ++i) {
         samples.push_back(bucket.random_sample_value());
-        std::uniform_int_distribution<size_t> index_dist(0, i);
-        size_t index = n+index_dist(rng);
+        int index = insertion_order[i];
         double new_weight = std::abs(weight_dist(rng));
         Element e(index, index, new_weight);
+        bucket.insert_element(e);
+    }
 
-        if (bucket.position_map.find(index) != bucket.position_map.end()){
-            bucket.update_weight(index, e);
-        }
-        else{
-            bucket.insert_element(e);
-        }
+    return samples;
+}
+
+std::vector<int> benchmark_sample_dynamic_decreasing(
+    XoshiroCpp::Xoroshiro128Plus& rng,
+    BucketMethod& bucket,
+    const std::vector<int>& removal_order
+) {
+    int n = static_cast<int>(removal_order.size());
+    int steps = n - n / 10;
+    std::vector<int> samples;
+    samples.reserve(steps);
+
+    for (int i = 0; i < steps; ++i) {
+        samples.push_back(bucket.random_sample_value());
+        bucket.delete_element(removal_order[i]);
     }
 
     return samples;
@@ -273,13 +291,24 @@ int main() {
     std::vector<double> static_times;
     std::vector<double> dynamic_fixed_times;
     std::vector<double> dynamic_variable_times;
+    std::vector<double> dynamic_decreasing_times;
 
     for (int exp = 3; exp <= 7; ++exp) {
         size_t size = static_cast<size_t>(std::pow(10, exp));
+        int steps = static_cast<int>(size - size / 10);
 
         std::vector<double> static_ns;
         std::vector<double> dynamic_fixed_ns;
         std::vector<double> dynamic_variable_ns;
+        std::vector<double> dynamic_decreasing_ns;
+
+        std::vector<int> insertion_order(9 * size);
+        std::iota(insertion_order.begin(), insertion_order.end(), static_cast<int>(size));
+        std::shuffle(insertion_order.begin(), insertion_order.end(), rng);
+
+        std::vector<int> removal_order(size);
+        std::iota(removal_order.begin(), removal_order.end(), 0);
+        std::shuffle(removal_order.begin(), removal_order.end(), rng);
 
         if (exp == 6) {repetitions /= 10;}
 
@@ -309,21 +338,33 @@ int main() {
 
         }
         
-        auto sampler3 = setup_sampler(size, rng);
-        
         for (int rep = 1; rep <= repetitions; ++rep) {
-            // Benchmark dynamic variable sampling
+            auto sampler3 = setup_sampler(size, rng);
+
+            // Benchmark dynamic increasing sampling
             auto variable2_start = std::chrono::high_resolution_clock::now();
-            auto variable2_samples = benchmark_sample_dynamic_variable(rng, sampler3, size);
+            auto variable2_samples = benchmark_sample_dynamic_variable(rng, sampler3, size, insertion_order);
             auto variable2_end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::nano> variable2_time = variable2_end - variable2_start;
             dynamic_variable_ns.push_back(variable2_time.count() / (9*size));
         
         }
 
+        for (int rep = 1; rep <= repetitions; ++rep) {
+            auto sampler4 = setup_sampler(size, rng);
+
+            // Benchmark dynamic decreasing sampling
+            auto decreasing_start = std::chrono::high_resolution_clock::now();
+            auto decreasing_samples = benchmark_sample_dynamic_decreasing(rng, sampler4, removal_order);
+            auto decreasing_end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::nano> decreasing_time = decreasing_end - decreasing_start;
+            dynamic_decreasing_ns.push_back(decreasing_time.count() / steps);
+        }
+
         static_times.push_back(median(static_ns));
         dynamic_fixed_times.push_back(median(dynamic_fixed_ns));
         dynamic_variable_times.push_back(median(dynamic_variable_ns));
+        dynamic_decreasing_times.push_back(median(dynamic_decreasing_ns));
 
     }
 
@@ -333,7 +374,8 @@ int main() {
         append_column_in_place(data_dir + "static.csv", static_times);
         append_column_in_place(data_dir + "dynamic_fixed.csv", dynamic_fixed_times);
         append_column_in_place(data_dir + "dynamic_variable.csv", dynamic_variable_times);
-        std::cout << "All three files written successfully.\n";
+        append_column_in_place(data_dir + "dynamic_decreasing.csv", dynamic_decreasing_times);
+        std::cout << "All four files written successfully.\n";
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;

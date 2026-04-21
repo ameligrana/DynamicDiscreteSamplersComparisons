@@ -1,5 +1,6 @@
 use dynamic_weighted_index::DynamicWeightedIndex;
 use rand::Rng;
+use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use pcg_rand::Pcg64;
 use rand_distr::{StandardNormal, Distribution};
@@ -44,6 +45,20 @@ fn sample_variable(
         let new_weight: f64 = StandardNormal.sample(rng);
         let abs_new_weight = new_weight.abs();
         dw_index.set_weight(index_to_modify, abs_new_weight);
+    }
+    samples
+}
+
+fn sample_decreasing(
+    rng: &mut Pcg64,
+    dw_index: &mut DynamicWeightedIndex<f64>,
+    removal_order: &[usize],
+) -> Vec<usize> {
+    let steps = removal_order.len() - removal_order.len() / 10;
+    let mut samples = Vec::with_capacity(steps);
+    for &index_to_remove in removal_order.iter().take(steps) {
+        samples.push(dw_index.sample(rng).unwrap());
+        dw_index.remove_weight(index_to_remove);
     }
     samples
 }
@@ -245,7 +260,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     repetitions = 50;
 
-    // --- 2) variable sampling ---
+    // --- 2) increasing-range sampling ---
     let mut variable_medians = Vec::with_capacity(sample_sizes.len());
     for &size in &sample_sizes {
 
@@ -280,6 +295,45 @@ fn main() -> Result<(), Box<dyn Error>> {
         .join("dynamic_fixed.csv");
     append_column_to_csv(&variable_csv, "FOREST_OF_TREES", &variable_medians)
         .expect("Failed to append FOREST_OF_TREES to dynamic_fixed.csv");
+
+    repetitions = 50;
+
+    // --- 3) decreasing-range sampling ---
+    let mut decreasing_medians = Vec::with_capacity(sample_sizes.len());
+    for &size in &sample_sizes {
+        if size > 100000 {repetitions = 5;}
+        let mut removal_order: Vec<usize> = (0..size).collect();
+        removal_order.shuffle(&mut rng);
+        let steps = size - size / 10;
+        let mut times: Vec<u128> = Vec::with_capacity(repetitions);
+        for _ in 0..repetitions {
+            let mut dw_index = setup(&mut rng, size);
+            let idx = black_box(&mut dw_index);
+            let order = black_box(&removal_order);
+            let start = Instant::now();
+            sample_decreasing(&mut rng, idx, order);
+            times.push(start.elapsed().as_nanos());
+        }
+        times.sort();
+        let median_ns = if repetitions % 2 == 0 {
+            (times[repetitions / 2 - 1] + times[repetitions / 2]) / 2
+        } else {
+            times[repetitions / 2]
+        };
+        let median_per_sample = median_ns as f64 / steps as f64;
+        println!(
+            "Size: {:>8}, Decreasing ({} reps): {:.2} ns/sample (median)",
+            size, repetitions, median_per_sample
+        );
+        decreasing_medians.push(median_per_sample);
+    }
+
+    let decreasing_csv = manifest_dir
+        .parent().unwrap()
+        .join("data")
+        .join("dynamic_decreasing.csv");
+    append_column_to_csv(&decreasing_csv, "FOREST_OF_TREES", &decreasing_medians)
+        .expect("Failed to append FOREST_OF_TREES to dynamic_decreasing.csv");
 
     Ok(())
 }

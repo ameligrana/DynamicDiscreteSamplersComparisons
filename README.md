@@ -10,11 +10,12 @@ Currently, it compares four algorithms:
 - FT (https://github.com/manpen/dynamic-weighted-index)
 - DPA* (https://github.com/Daniel-Allendorf/proposal-array)
 
-Three performance benchmarks and one exactness benchmark are performed:
+Four performance benchmarks and one exactness benchmark are performed:
 
 - performance test on static sampling
 - performance test on dynamic sampling with a fixed domain
-- performance test on dynamic sampling with a variable domain
+- performance test on dynamic sampling with an increasing domain
+- performance test on dynamic sampling with a decreasing domain
 - exactness test by an exponential decay strategy
 
 For more information, refer to the paper listed in the citation section.
@@ -41,7 +42,7 @@ The results are stored in csv format in the `data` folder, and as plots in the
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
   <img src="https://github.com/user-attachments/assets/d394ae94-c9f6-4255-aaaf-8b170afa66bf" alt="static" style="width: 32%;" />
   <img src="https://github.com/user-attachments/assets/adf3c0f5-0a20-49a2-b724-89010bb1eb8b" alt="dynamic_fixed" style="width: 32%;" />
-  <img src="https://github.com/user-attachments/assets/258e469c-c606-46a9-9262-8584839be22e" alt="dynamic_variable" style="width: 32%;" />
+  <img src="https://github.com/user-attachments/assets/258e469c-c606-46a9-9262-8584839be22e" alt="dynamic_increasing" style="width: 32%;" />
 </div>
 
 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">

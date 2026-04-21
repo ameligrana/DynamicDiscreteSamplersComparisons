@@ -1,9 +1,11 @@
 
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 mkdir -p data
 
-rm -f data/static.csv data/dynamic_fixed.csv data/dynamic_variable.csv
+rm -f data/static.csv data/dynamic_fixed.csv data/dynamic_variable.csv data/dynamic_decreasing.csv
 
 julia --project=. compare.jl
 
@@ -13,7 +15,7 @@ cargo run --release
 cd ..
 
 cd proposal_array
-rm -r build
+rm -rf build
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build .
@@ -23,7 +25,7 @@ cd ..
 
 cd bus
 cd WSS-WIRS
-rm -r build
+rm -rf build
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build .

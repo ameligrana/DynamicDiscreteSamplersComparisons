@@ -20,13 +20,23 @@ function dynamic_samples_fixed_dom_BUS_opt(rng, ds, N)
 	return s
 end
 
-function dynamic_samples_variable_dom_BUS_opt(rng, ds, N)
-	s = Vector{Int}(undef, 9*N)
-	@inbounds for i in 1:9*N
+function dynamic_samples_variable_dom_BUS_opt(rng, ds, insertion_order)
+	steps = length(insertion_order)
+	s = Vector{Int}(undef, steps)
+	@inbounds for i in 1:steps
 		s[i] = rand(ds)
-		r = N + rand(rng, 1:i)
-		(r <= length(ds.weights_assigned)) && (r in ds) && delete!(ds, r)
-		push!(ds, r, abs(randn(rng)))
+		push!(ds, insertion_order[i], abs(randn(rng)))
+	end
+	return s
+end
+
+function dynamic_samples_decreasing_dom_BUS_opt(rng, ds, removal_order)
+	initial_n = length(removal_order)
+	steps = initial_n - fld(initial_n, 10)
+	s = Vector{Int}(undef, steps)
+	@inbounds for i in 1:steps
+		s[i] = rand(ds)
+		delete!(ds, removal_order[i])
 	end
 	return s
 end

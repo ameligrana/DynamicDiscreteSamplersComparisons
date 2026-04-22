@@ -9,6 +9,8 @@ median_time(b) = median([x.time for x in b.samples])
 
 rng = Xoshiro(42)
 
+benchmark_runs(N) = N > 10^5 ? 5 : 50
+
 Ns = [10^i for i in 3:7]
 
 ts_static = Dict(
@@ -17,16 +19,17 @@ ts_static = Dict(
   "ALIAS_TABLE" => Float64[]
 )
 for N in Ns
-	w = initialize_weights_EBUS(rng, FixedSizeWeightVector, N)
-	t_static_EBUS = 10^9 * median_time(@be static_samples_EBUS($rng, $w, $N) seconds=20) / N
-	push!(ts_static["EBUS"], t_static_EBUS)
+    r = benchmark_runs(N)
+    w = initialize_weights_EBUS(rng, FixedSizeWeightVector, N)
+    t_static_EBUS = 10^9 * median_time(@be static_samples_EBUS($rng, $w, $N) evals=r samples=1 seconds=20) / N
+    push!(ts_static["EBUS"], t_static_EBUS)
 
     ds = initialize_sampler_BUS_opt(rng, N)
-    t_static_BUS_opt = 10^9 * median_time(@be static_samples_BUS_opt($rng, $ds, $N) seconds=20) / N
+    t_static_BUS_opt = 10^9 * median_time(@be static_samples_BUS_opt($rng, $ds, $N) evals=r samples=1 seconds=20) / N
     push!(ts_static["BUS_jl"], t_static_BUS_opt)
 
     al = initialize_ALIAS_TABLE(rng, N)
-    t_static_AL = 10^9 * median_time(@be static_samples_ALIAS_TABLE($rng, $al, $N) seconds=20) / N
+    t_static_AL = 10^9 * median_time(@be static_samples_ALIAS_TABLE($rng, $al, $N) evals=r samples=1 seconds=20) / N
     push!(ts_static["ALIAS_TABLE"], t_static_AL)
 end
 df = DataFrame(ts_static)
@@ -38,12 +41,13 @@ ts_dynamic_fixed_dom = Dict(
   "BUS_jl" => Float64[]
 )
 for N in Ns
-	w = initialize_weights_EBUS(rng, FixedSizeWeightVector, N)
-	t_dynamic_fixed_dom_EBUS = 10^9 * median_time(@be dynamic_samples_fixed_dom_EBUS($rng, $w, $N) seconds=20) / N
-	push!(ts_dynamic_fixed_dom["EBUS"], t_dynamic_fixed_dom_EBUS)
+    r = benchmark_runs(N)
+    w = initialize_weights_EBUS(rng, FixedSizeWeightVector, N)
+    t_dynamic_fixed_dom_EBUS = 10^9 * median_time(@be dynamic_samples_fixed_dom_EBUS($rng, $w, $N) evals=r samples=1 seconds=20) / N
+    push!(ts_dynamic_fixed_dom["EBUS"], t_dynamic_fixed_dom_EBUS)
 
     ds = initialize_sampler_BUS_opt(rng, N)
-    t_dynamic_fixed_dom_BUS_opt = 10^9 * median_time(@be dynamic_samples_fixed_dom_BUS_opt($rng, $ds, $N) seconds=20) / N
+    t_dynamic_fixed_dom_BUS_opt = 10^9 * median_time(@be dynamic_samples_fixed_dom_BUS_opt($rng, $ds, $N) evals=r samples=1 seconds=20) / N
     push!(ts_dynamic_fixed_dom["BUS_jl"], t_dynamic_fixed_dom_BUS_opt)
 end
 df = DataFrame(ts_dynamic_fixed_dom)
@@ -55,14 +59,15 @@ ts_dynamic_var_dom = Dict(
   "BUS_jl" => Float64[]
 )
 for N in Ns
-	insertion_order = N .+ randperm(rng, 9*N)
-	steps = length(insertion_order)
-	t_dynamic_var_dom_EBUS = @be initialize_weights_EBUS(rng, WeightVector, N) dynamic_samples_variable_dom_EBUS($rng, _, $insertion_order) evals=1 seconds=20
-	t_dynamic_var_dom_EBUS = median_time(t_dynamic_var_dom_EBUS)
-	t_dynamic_var_dom_EBUS *= 10^9 / steps
-	push!(ts_dynamic_var_dom["EBUS"], t_dynamic_var_dom_EBUS)
+    r = benchmark_runs(N)
+    insertion_order = N .+ randperm(rng, 9*N)
+    steps = length(insertion_order)
+    t_dynamic_var_dom_EBUS = @be initialize_weights_EBUS(rng, WeightVector, N) dynamic_samples_variable_dom_EBUS($rng, _, $insertion_order) evals=1 samples=r seconds=20
+    t_dynamic_var_dom_EBUS = median_time(t_dynamic_var_dom_EBUS)
+    t_dynamic_var_dom_EBUS *= 10^9 / steps
+    push!(ts_dynamic_var_dom["EBUS"], t_dynamic_var_dom_EBUS)
 
-        t_dynamic_var_dom_BUS_opt = @be initialize_sampler_BUS_opt(rng, N) dynamic_samples_variable_dom_BUS_opt($rng, _, $insertion_order) evals=1 seconds=20
+        t_dynamic_var_dom_BUS_opt = @be initialize_sampler_BUS_opt(rng, N) dynamic_samples_variable_dom_BUS_opt($rng, _, $insertion_order) evals=1 samples=r seconds=20
     t_dynamic_var_dom_BUS_opt = median_time(t_dynamic_var_dom_BUS_opt)
         t_dynamic_var_dom_BUS_opt *= 10^9 / steps
     push!(ts_dynamic_var_dom["BUS_jl"], t_dynamic_var_dom_BUS_opt)
@@ -76,15 +81,16 @@ ts_dynamic_dec_dom = Dict(
   "BUS_jl" => Float64[]
 )
 for N in Ns
+    r = benchmark_runs(N)
     perm = randperm(rng, N)
     steps = N - fld(N, 10)
 
-    t_dynamic_dec_dom_EBUS = @be initialize_weights_EBUS(rng, FixedSizeWeightVector, N) dynamic_samples_decreasing_dom_EBUS($rng, _, $perm) evals=1 seconds=20
-	t_dynamic_dec_dom_EBUS = median_time(t_dynamic_dec_dom_EBUS)
-	t_dynamic_dec_dom_EBUS *= 10^9 / steps
-	push!(ts_dynamic_dec_dom["EBUS"], t_dynamic_dec_dom_EBUS)
+    t_dynamic_dec_dom_EBUS = @be initialize_weights_EBUS(rng, FixedSizeWeightVector, N) dynamic_samples_decreasing_dom_EBUS($rng, _, $perm) evals=1 samples=r seconds=20
+    t_dynamic_dec_dom_EBUS = median_time(t_dynamic_dec_dom_EBUS)
+    t_dynamic_dec_dom_EBUS *= 10^9 / steps
+    push!(ts_dynamic_dec_dom["EBUS"], t_dynamic_dec_dom_EBUS)
 
-    t_dynamic_dec_dom_BUS_opt = @be initialize_sampler_BUS_opt(rng, N) dynamic_samples_decreasing_dom_BUS_opt($rng, _, $perm) evals=1 seconds=20
+    t_dynamic_dec_dom_BUS_opt = @be initialize_sampler_BUS_opt(rng, N) dynamic_samples_decreasing_dom_BUS_opt($rng, _, $perm) evals=1 samples=r seconds=20
     t_dynamic_dec_dom_BUS_opt = median_time(t_dynamic_dec_dom_BUS_opt)
     t_dynamic_dec_dom_BUS_opt *= 10^9 / steps
     push!(ts_dynamic_dec_dom["BUS_jl"], t_dynamic_dec_dom_BUS_opt)

@@ -36,4 +36,6 @@ cd ..
 
 mkdir -p figures
 
+julia --project=. uniform.jl
+
 julia --project=. plot.jl
